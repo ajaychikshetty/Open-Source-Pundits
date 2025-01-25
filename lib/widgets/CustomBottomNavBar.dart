@@ -23,10 +23,10 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
 
     final routes = {
       0: '/MyHomePage',
-      1: '/LivestockFeeding',
+      1: '/CreateAnimalPage',
       2: '/DiagnosticFormPage',
       3: '/ImagePickerPage',
-      4: '/profile',
+      4: '/AnimalFormPage',
     };
 
     if (routes.containsKey(index)) {

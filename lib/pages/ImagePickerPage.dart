@@ -35,6 +35,20 @@ class _ImagePickerPageState extends State<ImagePickerPage> {
     }
   }
 
+  // Method to handle the Submit button press
+  void _handleSubmit() {
+    if (_selectedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select an image before submitting.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Image submitted successfully!')),
+      );
+      // Add further actions here (e.g., upload the image to a server)
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,6 +83,7 @@ class _ImagePickerPageState extends State<ImagePickerPage> {
                 ),
               ),
             const SizedBox(height: 20),
+
             // Buttons to upload from gallery or camera
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -84,6 +99,20 @@ class _ImagePickerPageState extends State<ImagePickerPage> {
                   label: const Text('Camera'),
                 ),
               ],
+            ),
+            const SizedBox(height: 20),
+
+            // Submit Button
+            ElevatedButton(
+              onPressed: _handleSubmit,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                backgroundColor: Colors.green,
+              ),
+              child: const Text(
+                'Submit',
+                style: TextStyle(fontSize: 16),
+              ),
             ),
           ],
         ),

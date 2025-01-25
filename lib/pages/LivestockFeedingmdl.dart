@@ -28,7 +28,7 @@ class _LivestockFeedingState extends State<LivestockFeeding> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: CustomBottomNavBar(currentIndex: 1),
+      // bottomNavigationBar: CustomBottomNavBar(currentIndex: 1),
       appBar: AppBar(
         title: const Text("Livestock Feeding Form"),
         backgroundColor: Colors.green,

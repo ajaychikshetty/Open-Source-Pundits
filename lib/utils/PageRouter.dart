@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:xie_hackathon/pages/LoginPage.dart';
 import 'package:xie_hackathon/pages/SignUpPage.dart';
+import '../pages/AnimalFormPage.dart';
 import '../pages/ChatBot.dart';
+import '../pages/CreateAnimalPage.dart';
 import '../pages/DiagnosticFormPage.dart';
 import '../pages/ImagePickerPage.dart';
 import '../pages/IntroductionAnimationScreen.dart';
@@ -13,7 +15,7 @@ class PageRouter {
     switch (settings.name) {
       case '/':
         return PageRouteBuilder(
-            pageBuilder: (_, __, ___) => IntroductionAnimationScreen(),
+            pageBuilder: (_, __, ___) => MyHomePage(),
             transitionDuration: Duration(seconds: 2));
 
       case '/MyHomePage':
@@ -50,7 +52,16 @@ class PageRouter {
         return PageRouteBuilder(
             pageBuilder: (_, __, ___) => ImagePickerPage(),
             transitionDuration: Duration(seconds: 2));
-
+            
+      case '/AnimalFormPage':
+        return PageRouteBuilder(
+            pageBuilder: (_, __, ___) => AnimalFormPage(),
+            transitionDuration: Duration(seconds: 2));
+      
+       case '/CreateAnimalPage':
+        return PageRouteBuilder(
+            pageBuilder: (_, __, ___) => CreateAnimalPage(),
+            transitionDuration: Duration(seconds: 2));
 
       default:
         return PageRouteBuilder(pageBuilder: (_, __, ___) => MyHomePage());

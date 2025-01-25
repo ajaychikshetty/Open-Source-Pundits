@@ -1,0 +1,10 @@
+Create animals:
+
+Name
+age 
+breed 
+weight 
+disease history  
+Photo of animal 
+
+username -- pass
