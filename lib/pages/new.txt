@@ -1,10 +1,8 @@
-Create animals:
-
-Name
-age 
-breed 
-weight 
-disease history  
-Photo of animal 
-
-username -- pass
+_id: 6794e39153775f47466424d4,
+ age: 30,
+  breed: holstein, 
+  disease_history: [laminitis], 
+  email: ajaychikshetty123@gmail.com, 
+  name: moti, 
+   weight: 500
+   status: sick 

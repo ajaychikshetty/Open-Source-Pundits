@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:xie_hackathon/pages/EditPetScreen.dart';
 import '../const/AppColors.dart';
 import '../const/LocalizationProvider.dart';
 import '../screens/DrawerScreen.dart';
 import '../widgets/CustomBottomNavBar.dart';
+import 'package:http/http.dart' as http;
 
 class MyHomePage extends StatefulWidget {
   @override
@@ -13,22 +16,56 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final List<Map<String, dynamic>> homeCategories = [
-    {
-      'title': 'WasteBot',
-      'description': 'AI Waste Management',
-      'icon': Icons.recycling,
-      'imageUrl':
-          'https://images.unsplash.com/photo-1545987796-200677ee1011?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    },
-    {
-      'title': 'Recycle',
-      'description': 'Smart Recycling',
-      'icon': Icons.auto_awesome,
-      'imageUrl':
-          'https://images.unsplash.com/photo-1545987796-200677ee1011?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    },
-  ];
+  String? selectedPetName; // To hold the currently selected pet name
+  List<dynamic> pets = []; // To hold the fetched pets data
+  String? feedingSchedule;
+  bool isLoading = true;
+
+  Future<void> _fetchPetsData() async {
+    const String apiUrl = "http://192.168.235.140:5000/get_pet";
+    const String email = "ajaychikshetty123@gmail.com";
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": email}),
+      );
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+
+        setState(() {
+          pets = responseData['pets'] ?? []; // Save pets data
+          print(pets);
+          isLoading = false;
+        });
+
+        if (pets.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("No pets found.")),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: ${response.statusCode}")),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("An error occurred. Please try again.")),
+      );
+      print("Error: $e");
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPetsData();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +75,6 @@ class _MyHomePageState extends State<MyHomePage> {
     final screenWidth = screenSize.width;
 
     return Scaffold(
-      drawer: DrawerScreen(),
       backgroundColor: AppColors.backgroundColor,
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.only(top: 10.0),
@@ -65,11 +101,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: CircleAvatar(
                     radius: 24,
                     backgroundColor: AppColors.primaryColor,
-                    backgroundImage: NetworkImage(
-                      'https://images.unsplash.com/photo-1545987796-200677ee1011?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-                    ),
+                    backgroundImage: AssetImage(
+                        'assets/Images/avatar_2.jpg'), // Use AssetImage here
                   ),
-                ),
+                )
               ],
             ),
             SliverToBoxAdapter(
@@ -80,7 +115,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     SizedBox(height: 30),
                     Text(
-                      'OUR SERVICES',
+                      'MY PETS',
                       style: GoogleFonts.spaceMono(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -90,70 +125,88 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     SizedBox(height: 20),
                     SizedBox(
-                      height: screenHeight * 0.35,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: EdgeInsets.symmetric(horizontal: 20),
-                        physics: BouncingScrollPhysics(),
-                        itemCount: homeCategories.length,
-                        itemBuilder: (context, index) {
-                          final category = homeCategories[index];
-                          return Padding(
-                            padding: EdgeInsets.only(right: 20),
-                            child: Container(
-                              width: screenWidth * 0.6,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(30),
-                                color: AppColors.primaryColor.withOpacity(0.1),
-                                border: Border.all(
-                                  color: AppColors.accentColor.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Padding(
-                                padding: EdgeInsets.all(20),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SizedBox(height: 15),
-                                    SizedBox(height: 15),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(20),
-                                      child: Image.network(
-                                        category['imageUrl'],
-                                        height: screenHeight * 0.12,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
+                      height: screenHeight * 0.30,
+                      child: isLoading
+                          ? CircularProgressIndicator()
+                          : ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding: EdgeInsets.symmetric(horizontal: 20),
+                              physics: BouncingScrollPhysics(),
+                              itemCount: pets.length,
+                              itemBuilder: (context, index) {
+                                final category = pets[index];
+                                print(pets[index]);
+                                return Padding(
+                                  padding: EdgeInsets.only(right: 20),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  EditPetScreen(
+                                                      petData: category)));
+                                    },
+                                    child: Container(
+                                      width: screenWidth * 0.6,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(30),
+                                        color: AppColors.primaryColor
+                                            .withOpacity(0.1),
+                                        border: Border.all(
+                                          color: AppColors.accentColor
+                                              .withOpacity(0.3),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Padding(
+                                        padding: EdgeInsets.all(20),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            SizedBox(height: 15),
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                              child: Image.network(
+                                                category['pet_image'],
+                                                height: screenHeight * 0.14,
+                                                width: double.infinity,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                            SizedBox(height: 15),
+                                            Text(
+                                              category['name'],
+                                              style: GoogleFonts.rajdhani(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.textColor,
+                                              ),
+                                            ),
+                                            SizedBox(height: 8),
+                                            Text(
+                                              category['breed'],
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 14,
+                                                color: AppColors.textColor
+                                                    .withOpacity(0.7),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                    SizedBox(height: 15),
-                                    Text(
-                                      category['title'],
-                                      style: GoogleFonts.rajdhani(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.textColor,
-                                      ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      category['description'],
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        color: AppColors.textColor
-                                            .withOpacity(0.7),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
                     ),
-                    SizedBox(height: screenHeight * 0.05,),
-                     Text(
+                    SizedBox(
+                      height: screenHeight * 0.05,
+                    ),
+                    Text(
                       'OUR SERVICES',
                       style: GoogleFonts.spaceMono(
                         fontSize: 16,
@@ -190,7 +243,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      '${homeCategories.length}',
+                                      '${pets.length}',
                                       style: GoogleFonts.rajdhani(
                                         fontSize: 48,
                                         fontWeight: FontWeight.bold,
@@ -248,7 +301,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                 ],
                               ),
                             ),
-                          
                           ],
                         ),
                       ),
@@ -279,7 +331,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      '${homeCategories.length}',
+                                      '${pets.length}',
                                       style: GoogleFonts.rajdhani(
                                         fontSize: 48,
                                         fontWeight: FontWeight.bold,
@@ -347,7 +399,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             ),
-          
           ],
         ),
       ),

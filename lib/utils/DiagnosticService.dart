@@ -1,15 +1,16 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'package:dio/dio.dart';
+
 import '../const/AppConstants.dart';
 
 class DiagnosticService {
-  static final Dio dio = Dio();
-
   static Future<String> generateDiagnosticSummary({
     required String breed,
     required String age,
     required String weight,
     required String symptoms,
+    required String diseaseHistory,
   }) async {
     try {
       // Format the input for the Gemini API
@@ -22,15 +23,25 @@ class DiagnosticService {
             Breed: $breed
             Age: $age years
             Weight: $weight kg
-            Symptoms: $symptoms
-            Provide a detailed diagnostic summary that can be sent to a veterinarian for review.
+            Disease History: $diseaseHistory
+            Current Symptoms: $symptoms
+            
+            Provide a detailed diagnostic summary that includes:
+            1. Potential diagnoses based on the symptoms
+            2. Recommended diagnostic tests
+            3. Initial treatment suggestions
+            4. Urgency of veterinary intervention
+            5. Assume the animal turns $age today give me a proper list with date of all the future vaccinations that i should give to the above animal this year month wise or you can give me exact dates too plan it for me
+
+            
+            Ensure the summary is comprehensive yet concise, suitable for a veterinary professional to review quickly also use apropriate delimiters so i can seperate and split points
             """
           }
         ]
       };
 
       // Make the API request
-      final response = await dio.post(
+      final response = await Dio().post(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${AppConstants.apiKey}",
         data: {
           "contents": [inputMessage],

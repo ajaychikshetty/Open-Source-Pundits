@@ -4,39 +4,34 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:xie_hackathon/const/AppColors.dart';
-import 'package:xie_hackathon/widgets/CustomBottomNavBar.dart';
-import '../utils/livestockservice.dart';
+import '../const/AppColors.dart';
+import '../utils/DiagnosticService.dart';
+import '../widgets/CustomBottomNavBar.dart';
 
-class LivestockFeeding extends StatefulWidget {
-  const LivestockFeeding({super.key});
+class DiagnosticFormPage extends StatefulWidget {
+  const DiagnosticFormPage({super.key});
 
   @override
-  State<LivestockFeeding> createState() => _LivestockFeedingState();
+  State<DiagnosticFormPage> createState() => _DiagnosticFormPageState();
 }
 
-class _LivestockFeedingState extends State<LivestockFeeding> {
-  // Controllers for form fields
+class _DiagnosticFormPageState extends State<DiagnosticFormPage> {
+  // Controllers for form inputs
   final TextEditingController breedController = TextEditingController();
   final TextEditingController ageController = TextEditingController();
   final TextEditingController weightController = TextEditingController();
-  String? healthStatus;
-  final List<String> healthStatusOptions = [
-    'Healthy',
-    'Sick',
-    'Pregnant',
-    'Recovering'
-  ];
+  final TextEditingController diseaseHistoryController = TextEditingController();
+  final TextEditingController symptomsController = TextEditingController();
 
   // Form key for validation
   final _formKey = GlobalKey<FormState>();
+
+  // State variables
   List<dynamic> pets = []; // To hold the fetched pets data
   String? selectedPetName; // To hold the currently selected pet name
-
-  // State to store the generated feeding schedule
-  String? feedingSchedule;
-  bool isLoading = false;
-
+  bool isLoading = false; // To manage loading state
+String? diagnosticSummary;
+  // Fetch pets data from the Flask API
   Future<void> _fetchPetsData() async {
     const String apiUrl = "http://192.168.235.140:5000/get_pet";
     const String email = "ajaychikshetty123@gmail.com";
@@ -83,13 +78,48 @@ class _LivestockFeedingState extends State<LivestockFeeding> {
       print("Error: $e");
     }
   }
-
+void _showDiagnosticSummaryDialog() {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(
+              'Diagnostic Summary',
+              style: GoogleFonts.rajdhani(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: SingleChildScrollView(
+              child: Text(
+                diagnosticSummary ?? 'No summary available',
+                style: GoogleFonts.poppins(),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text(
+                  'Close',
+                  style: GoogleFonts.rajdhani(
+                    color: AppColors.accentColor,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  // Populate fields when a pet name is selected
   void _populateFields(String selectedName) {
     final selectedPet = pets.firstWhere((pet) => pet['name'] == selectedName);
 
     breedController.text = selectedPet['breed'] ?? '';
     ageController.text = selectedPet['age'].toString();
     weightController.text = selectedPet['weight'] ?? '';
+    diseaseHistoryController.text = (selectedPet['disease_history'] as List<dynamic>).join(', ');
   }
 
   @override
@@ -105,7 +135,7 @@ class _LivestockFeedingState extends State<LivestockFeeding> {
 
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
-      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 4),
+      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 2),
       body: SafeArea(
         child: Stack(
           children: [
@@ -142,7 +172,7 @@ class _LivestockFeedingState extends State<LivestockFeeding> {
                     ),
                   ),
                   title: Text(
-                    'Livestock Feeding',
+                    'Diagnostic Form',
                     style: GoogleFonts.spaceMono(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -161,7 +191,7 @@ class _LivestockFeedingState extends State<LivestockFeeding> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 30),
-
+                          
                           // Pet Selection Section
                           Container(
                             height: screenHeight * 0.15,
@@ -203,171 +233,100 @@ class _LivestockFeedingState extends State<LivestockFeeding> {
                           ),
                           const SizedBox(height: 16),
 
-                          DropdownButtonFormField<String>(
-                            value: healthStatus,
-                            items: healthStatusOptions.map((status) {
-                              return DropdownMenuItem(
-                                value: status,
-                                child: Text(status),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                healthStatus = value;
-                              });
-                            },
+                          _buildTextField(
+                            controller: diseaseHistoryController,
+                            labelText: "Disease History",
+                            maxLines: 3,
+                            readOnly: true,
+                          ),
+                          const SizedBox(height: 16),
+
+                          _buildTextField(
+                            controller: symptomsController,
+                            labelText: "Symptoms",
+                            maxLines: 4,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return "Please select a health status";
+                                return "Please describe the symptoms";
                               }
                               return null;
                             },
-                            style: GoogleFonts.poppins(
-                              color: AppColors.textColor,
-                              fontSize: 16,
-                            ),
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 15),
-                              hintText: "Choose Health Status",
-                              hintStyle: GoogleFonts.poppins(
-                                color: AppColors.hintTextColor,
-                                fontSize: 16,
-                              ),
-                              filled: true,
-                              fillColor: AppColors.accentColor.withOpacity(0.1),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(
-                                  color: AppColors.accentColor.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              errorStyle: GoogleFonts.poppins(
-                                color: Colors.red,
-                                fontSize: 14,
-                              ),
-                            ),
                           ),
                           const SizedBox(height: 24),
 
-                          Center(
-                            child: Column(
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    if (_formKey.currentState!.validate()) {
-                                      setState(() {
-                                        isLoading = true;
-                                        feedingSchedule = null;
-                                      });
+                           Center(
+      child: Column(
+        children: [
+          ElevatedButton(
+            onPressed: () async {
+              if (_formKey.currentState!.validate()) {
+                setState(() {
+                  isLoading = true;
+                  diagnosticSummary = null;
+                });
 
-                                      // Call the service to generate the feeding schedule
-                                      final response = await LivestockService
-                                          .generateFeedingSchedule(
-                                        breed: breedController.text,
-                                        age: ageController.text,
-                                        weight: weightController.text,
-                                        healthStatus: healthStatus!,
-                                      );
+                try {
+                  // Call the service to generate a diagnostic summary
+                  final response = await DiagnosticService.generateDiagnosticSummary(
+                    breed: breedController.text,
+                    age: ageController.text,
+                    weight: weightController.text,
+                    symptoms: symptomsController.text,
+                    diseaseHistory: diseaseHistoryController.text,
+                  );
 
-                                      setState(() {
-                                        isLoading = false;
-                                      });
+                  setState(() {
+                    isLoading = false;
+                    diagnosticSummary = response;
+                  });
 
-                                      // Show the feeding schedule in an AlertDialog
-                                      showDialog(
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return AlertDialog(
-                                            title: Text(
-                                              'Feeding Schedule',
-                                              style: GoogleFonts.rajdhani(
-                                                fontSize: 22,
-                                                fontWeight: FontWeight.bold,
-                                                color: AppColors.textColor,
-                                              ),
-                                            ),
-                                            content: SingleChildScrollView(
-                                              child: Text(
-                                                response,
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 16,
-                                                  color: AppColors.textColor,
-                                                ),
-                                              ),
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () {
-                                                  Navigator.of(context).pop();
-                                                },
-                                                child: Text(
-                                                  'Close',
-                                                  style: GoogleFonts.rajdhani(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                    color:
-                                                        AppColors.accentColor,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(15),
-                                            ),
-                                            backgroundColor: Colors.white,
-                                          );
-                                        },
-                                      );
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 32, vertical: 16),
-                                    backgroundColor: AppColors.accentColor,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                    ),
-                                    elevation: 5,
-                                  ),
-                                  child: isLoading
-                                      ? const CircularProgressIndicator(
-                                          color: Colors.white)
-                                      : Text(
-                                          'Generate Feeding Schedule',
-                                          style: GoogleFonts.rajdhani(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                ),
-                                // Display Feeding Schedule
-                                if (feedingSchedule != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 16),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primaryColor
-                                            .withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(15),
-                                      ),
-                                      child: Text(
-                                        feedingSchedule!,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 16,
-                                          color: AppColors.textColor,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
+                  // Optionally show the summary in a dialog or navigate to a new page
+                  _showDiagnosticSummaryDialog();
+                } catch (e) {
+                  setState(() {
+                    isLoading = false;
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error generating summary: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              backgroundColor: AppColors.accentColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              elevation: 5,
+            ),
+            child: isLoading
+              ? const CircularProgressIndicator(color: Colors.white)
+              : Text(
+                  'Generate Diagnostic Summary',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+          ),
 
+          // Optionally show loading indicator or summary
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: CircularProgressIndicator(),
+            ),
+        ],
+      ),
+    ),
+
+    // Add this method to show the diagnostic summary
+    
                           const SizedBox(height: 40),
                         ],
                       ),
@@ -407,8 +366,7 @@ class _LivestockFeedingState extends State<LivestockFeeding> {
           fontSize: 16,
         ),
         decoration: InputDecoration(
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           labelText: labelText,
           labelStyle: GoogleFonts.poppins(
             color: AppColors.hintTextColor,
@@ -432,8 +390,8 @@ class _LivestockFeedingState extends State<LivestockFeeding> {
         Text(
           "Select Pet",
           style: GoogleFonts.rajdhani(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontSize: 18, 
+            fontWeight: FontWeight.bold, 
             color: AppColors.textColor,
           ),
         ),
@@ -459,8 +417,7 @@ class _LivestockFeedingState extends State<LivestockFeeding> {
             fontSize: 16,
           ),
           decoration: InputDecoration(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
             hintText: "Choose a pet",
             hintStyle: GoogleFonts.poppins(
               color: AppColors.hintTextColor,
@@ -493,10 +450,11 @@ class _LivestockFeedingState extends State<LivestockFeeding> {
 
   @override
   void dispose() {
-    // Dispose controllers
     breedController.dispose();
     ageController.dispose();
     weightController.dispose();
+    diseaseHistoryController.dispose();
+    symptomsController.dispose();
     super.dispose();
   }
 }
